@@ -5,8 +5,10 @@ import random
 import time
 import csv
 import numpy as np
+import sys
 import pandas as pd
 from scipy import stats
+import ggplot
 
 # creates a list of indices that correspond to mouse groups
 def group_index_gen(group_sizes):
@@ -16,7 +18,6 @@ def group_index_gen(group_sizes):
         counter += i
         group_indices.append(counter)
     return group_indices
-
 
 # iterator takes a transposed df, shuffles it, records the order of indices of
 # df, the p values, and the mean p value in the a three element list.
@@ -60,13 +61,13 @@ def parse_args(args):
                             action = 'store_true')
     parser.add_argument('filename', help = 'Enter file name of input data file')
     parser.add_argument('groups_file', help = 'Enter file name of group numbers in csv format')
-    parser.add_argument('output_filename', help = 'Enter file name of output data file')
+    parser.add_argument('output_filename', help = '(MUST END WITH .xlsx !) Enter file name of output data file')
     parser.add_argument('iterations', help = 'Number of cycles to try. 1 million is a good default')
     return parser.parse_args(args)
 
 # Parse sys.argv, optionally preprovided args for debugging
-#args = parse_args(sys.argv[1:])
-args = parse_args(['input.csv', 'groups.csv', 'output.xlsx', '10000'])
+args = parse_args(sys.argv[1:])
+#args = parse_args(['input.csv', 'groups.csv', 'output.xlsx', '10000'])
 
 # Debug mode prints more things for iterator function
 if args.debug == True:
@@ -109,8 +110,20 @@ for i in range(10):
     print(sorted_table[i][2])
 print("Writing output to: {0}".format(args.output_filename))
 
-#data_table.iloc[:,sorted_table[0][0]].to_excel(args.output_filename, sheet_name = 'test')
+def create_group_labels(group_sizes):
+    l = []    
+    for i in range(len(group_sizes)):
+        l += ['Group{0}'.format(i+1)]*int(group_sizes[i])
+    return l
+
+ordered_df_list = [data_table.iloc[:,i[0]] for i in sorted_table]
+ordered_df_list = [pd.concat((i, pd.DataFrame(create_group_labels(group_sizes)).T)) for i in ordered_df_list]
+
+#data_table.iloc[:,sorted_table[0][0]].to_excel(args.output_filename, sheet_name = '01')
 with pd.ExcelWriter(args.output_filename) as writer:    
     for i in range(10):
         data_table.iloc[:,sorted_table[i][0]].to_excel(writer, sheet_name = 'Output{0}'.format(i+1))
+        
+
+    
 
